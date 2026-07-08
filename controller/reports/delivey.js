@@ -310,7 +310,10 @@ exports.getItemsTotalWeights = async (req, res) => {
           itemId: "$item._id",
           itemName: "$item.name",
           totalWeight: 1,
-          totalQuantity: 1
+          totalQuantity: 1,
+          totalOldReturnWeight:1,
+          totalReturnWeight:1
+
         }
       }
 
