@@ -9,7 +9,7 @@ const supplierSchema = new mongoose.Schema({
 //   delivery operation
   transactions: [
     {
-      type: { type: String, enum: ["delivery" , "return"], default: "delivery" },
+      type: { type: String, enum: ["delivery" , "return","outdelivery"], default: "delivery" },
 
       deliveryId: { 
         type: mongoose.Schema.Types.ObjectId, 
