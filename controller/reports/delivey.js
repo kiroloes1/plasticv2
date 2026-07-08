@@ -86,8 +86,11 @@ exports.getDeliveriesReport = async (req, res) => {
             $sum: "$items.batches.weight"
           },
            // total return weight
-          totalReturnWeight: {
-            $sum: "$items.totalWeight"
+          totalOldReturnWeight: {
+            $sum: "$items.oldReturnWeight"
+          },
+                   totalReturnWeight: {
+            $sum: "$items.returnWeight"
           }
 
         }
