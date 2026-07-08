@@ -22,6 +22,7 @@ const itemRoute = require(`${__dirname}/routes/delivery/items`);
 const expenceRoute= require(`${__dirname}/routes/expense`)
 const deliveryRoutes =require(`${__dirname}/routes/delivery/delivery`)
 const ReturnDeliveryRoute=require(`${__dirname}/routes/delivery/return`);
+const outDelivery=require(`${__dirname}/routes/delivery/outDelivery`);
 const reports=require(`${__dirname}/routes/reports`);
 const backupRoutes = require("./backups/backup");
 
@@ -43,6 +44,7 @@ app.use('/v1/item',itemRoute);
 app.use('/v1/expense',expenceRoute);
 app.use("/v1/delivery", deliveryRoutes);
 app.use("/v1/ReturnDelivery", ReturnDeliveryRoute);
+app.use("/v1/outDelivery", outDelivery);
 app.use("/v1/reports", reports);
 app.use("/v1/", backupRoutes);
 

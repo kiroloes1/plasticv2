@@ -19,7 +19,7 @@ const TransactionSchema = new mongoose.Schema({
         title: String,
         category: {
             type: String,
-            enum: ["supplier", "expense", "delivery" ,"carPayment" ,"teaForWorker","AddHand"]
+            enum: ["supplier", "expense", "delivery"  ,"outdelivery","carPayment" ,"teaForWorker","AddHand"]
         },
         amount: {
             type: Number,
