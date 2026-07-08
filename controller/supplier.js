@@ -279,7 +279,7 @@ exports.paySupplier = async (req, res) => {
   try {
     
     const { id } = req.params;
-    const { amount, note , paymentMethod } = req.body;
+    const { amount, note, paymentMethod, date } = req.body;
     const userId = req.user.userId;
 
         if (!paymentMethod || !["cash" , "wallet" ,"instapay" ,"bank" ,"work","mail"].includes(paymentMethod)) {
