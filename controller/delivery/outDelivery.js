@@ -372,7 +372,7 @@ exports.updateDelivery = async (req, res) => {
 
              
              itemsUpdate.push(            {
-                title:   " استلام فلوس نقدي من التاجر " + "  "+ supplierExists.name +" " + "لنقلة رقم " + deliveryNumber +" كعمليه بيع نقله",
+                title:   " استلام فلوس نقدي من التاجر " + "  "+ supplierDoc.name +" " + "لنقلة رقم " + deliveryNumber +" كعمليه بيع نقله",
                 category: "outdelivery",
                 amount: Number(p.paidAmount)
             },)   
@@ -397,7 +397,7 @@ exports.updateDelivery = async (req, res) => {
           await TransactionModel.create([{
             moneyBoxId: box._id,
             type: "income",
-            note: note || " استلام فلوس نقدي من التاجر " + "  "+ supplierExists.name +" " + "لنقلة رقم " + deliveryNumber +" كعمليه بيع نقله",
+            note: note || " استلام فلوس نقدي من التاجر " + "  "+ supplierDoc.name +" " + "لنقلة رقم " + deliveryNumber +" كعمليه بيع نقله",
             items: itemsUpdate || [],
            supplierId: supplierDoc._id,
            deliverId: updated._id,
