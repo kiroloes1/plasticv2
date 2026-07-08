@@ -279,7 +279,15 @@ exports.getItemsTotalWeights = async (req, res) => {
 
           totalQuantity: {
             $sum: "$items.batches.quantity"
+          },
+                     // total return weight
+          totalOldReturnWeight: {
+            $sum: "$items.oldReturnWeight"
+          },
+                   totalReturnWeight: {
+            $sum: "$items.returnWeight"
           }
+
         }
       },
 
