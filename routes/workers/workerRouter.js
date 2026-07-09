@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const workerCtrl = require(`${__dirname}/../../controllers/worker/workerControllers`);
-const authMiddleware = require(`${__dirname}/../../middlewares/authMiddleware`); // تأكد من صحة المسار
-const { role } = require(`${__dirname}/../../middlewares/authorization`); // تأكد من صحة المسار
-
+const workerCtrl = require(`${__dirname}/../../controller/worker/workerControllers`);
+const authMiddleware = require(`${__dirname}/../../middlewares/authMiddleware`);
+const { role } = require(`${__dirname}/../../middlewares/authorization`); 
 // ========================== MIDDLEWARES ==========================
 
 // حماية جميع المسارات وحصرها على الأدوار المحددة (Superadmin و Manager)
