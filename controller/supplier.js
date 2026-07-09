@@ -5,7 +5,7 @@ const Transaction = require(`${__dirname}/../models/TransactionBox`);
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 const deliveryMoedl=require(`${__dirname}/../models/delivery`);
 const returnDeliveryMoedl=require(`${__dirname}/../models/returnDelivery`);
-
+const outDeliveryMoedl=require(`${__dirname}/../models/outDelivery`);
 // ================= GET ALL =================
 exports.getAllSuppliers = async (req, res) => {
   try {
@@ -176,6 +176,8 @@ exports.deleteSupplier = async (req, res) => {
 
     await returnDeliveryMoedl.deleteMany({ supplier: id });
     await deliveryMoedl.deleteMany({ supplier: id });
+    await outDeliveryMoedl.deleteMany({ supplier: id });
+
 
     await Supplier.findByIdAndDelete(id);
 
@@ -279,7 +281,7 @@ exports.paySupplier = async (req, res) => {
   try {
     
     const { id } = req.params;
-    const { amount, note, paymentMethod, date } = req.body;
+    const { amount, note , paymentMethod,date  } = req.body;
     const userId = req.user.userId;
 
         if (!paymentMethod || !["cash" , "wallet" ,"instapay" ,"bank" ,"work","mail"].includes(paymentMethod)) {
