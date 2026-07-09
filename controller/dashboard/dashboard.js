@@ -143,7 +143,7 @@ exports.getDashboard = async (req, res) => {
     // returns
     const totalReturns = await Return.countDocuments(dateFilter);
 
-    const Worker =await Worker.countDocuments();
+    const totalWorker =await Worker.countDocuments();
 
     res.status(200).json({
 
@@ -175,7 +175,7 @@ exports.getDashboard = async (req, res) => {
           totalDeliveries,
 
           totalReturns,
-          Worker
+          totalWorker
         }
       }
     });
