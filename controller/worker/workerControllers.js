@@ -24,29 +24,61 @@ exports.createWorker = async (req, res) => {
 // 2. تسجيل حضور أو غياب (حماية ضد تكرار اليوم)
 exports.markAttendance = async (req, res) => {
   try {
-    const { status } = req.body;
-    
-    // حماية: التأكد من إرسال الحالة
+    const { status, date } = req.body;
+
+    // التحقق من الحالة
     if (!status || !["present", "absent"].includes(status)) {
-      return res.status(400).json({ message: "يجب تحديد الحالة (حاضر أم غائب)" });
+      return res.status(400).json({
+        message: "يجب تحديد الحالة (حاضر أم غائب)"
+      });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // لو المستخدم بعت تاريخ استخدمه، وإلا استخدم تاريخ اليوم
+    const attendanceDate = date ? new Date(date) : new Date();
+
+    // حذف الوقت حتى تتم المقارنة باليوم فقط
+    attendanceDate.setHours(0, 0, 0, 0);
 
     const worker = await Worker.findById(req.params.id);
-    if (!worker) return res.status(404).json({ message: "العامل غير موجود" });
 
-    const isRecorded = worker.attendance.find(a => 
-      new Date(a.date).getTime() === today.getTime()
-    );
+    if (!worker) {
+      return res.status(404).json({
+        message: "العامل غير موجود"
+      });
+    }
 
-    if (isRecorded) return res.status(400).json({ message: "تم تسجيل حالة هذا العامل اليوم بالفعل" });
+    // التأكد أن اليوم ده لم يتم تسجيله من قبل
+    const isRecorded = worker.attendance.find((a) => {
+      const d = new Date(a.date);
+      d.setHours(0, 0, 0, 0);
 
-    worker.attendance.push({ date: today, status });
+      return d.getTime() === attendanceDate.getTime();
+    });
+
+    if (isRecorded) {
+      return res.status(400).json({
+        message: "تم تسجيل حالة هذا العامل في هذا اليوم بالفعل"
+      });
+    }
+
+    worker.attendance.push({
+      date: attendanceDate,
+      status,
+    });
+
     await worker.save();
-    res.json({ message: status === "present" ? "تم تسجيل الحضور" : "تم تسجيل الغياب" });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+
+    res.json({
+      message:
+        status === "present"
+          ? "تم تسجيل الحضور"
+          : "تم تسجيل الغياب",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 };
 
 // 3. إضافة (سلفة / خصم / أكل) - حماية ضد الأرقام السالبة الغلط
