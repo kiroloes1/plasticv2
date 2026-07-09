@@ -4,6 +4,7 @@ const Supplier = require(`${__dirname}/../../models/supplier`);
 const Deliver = require(`${__dirname}/../../models/delivery`);
 const Return = require(`${__dirname}/../../models/returnDelivery`); 
 const User = require(`${__dirname}/../../models/users`);
+const Worker = require(`${__dirname}/../../models/workerModel`);
 
 
 // helper function for date filtering
@@ -142,7 +143,7 @@ exports.getDashboard = async (req, res) => {
     // returns
     const totalReturns = await Return.countDocuments(dateFilter);
 
-
+    const Worker =await Worker.countDocuments();
 
     res.status(200).json({
 
@@ -173,7 +174,8 @@ exports.getDashboard = async (req, res) => {
 
           totalDeliveries,
 
-          totalReturns
+          totalReturns,
+          Worker
         }
       }
     });
