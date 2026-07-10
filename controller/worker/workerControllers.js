@@ -21,7 +21,7 @@ exports.createWorker = async (req, res) => {
   }
 };
 
-// 2. تسجيل حضور أو غياب (حماية ضد تكرار اليوم)
+// 2. تسجيل حضور أو غياب (مع إمكانية تعديل الحالة)
 exports.markAttendance = async (req, res) => {
   try {
     const { status, date } = req.body;
@@ -29,58 +29,61 @@ exports.markAttendance = async (req, res) => {
     // التحقق من الحالة
     if (!status || !["present", "absent"].includes(status)) {
       return res.status(400).json({
-        message: "يجب تحديد الحالة (حاضر أم غائب)"
+        message: "يجب تحديد الحالة (حاضر أم غائب)",
       });
     }
 
-    // لو المستخدم بعت تاريخ استخدمه، وإلا استخدم تاريخ اليوم
+    // استخدام التاريخ المرسل أو تاريخ اليوم
     const attendanceDate = date ? new Date(date) : new Date();
-
-    // حذف الوقت حتى تتم المقارنة باليوم فقط
     attendanceDate.setHours(0, 0, 0, 0);
 
     const worker = await Worker.findById(req.params.id);
 
     if (!worker) {
       return res.status(404).json({
-        message: "العامل غير موجود"
+        message: "العامل غير موجود",
       });
     }
 
-    // التأكد أن اليوم ده لم يتم تسجيله من قبل
-    const isRecorded = worker.attendance.find((a) => {
-      const d = new Date(a.date);
+    // البحث عن تسجيل لنفس اليوم
+    const existingAttendance = worker.attendance.find((attendance) => {
+      const d = new Date(attendance.date);
       d.setHours(0, 0, 0, 0);
 
       return d.getTime() === attendanceDate.getTime();
     });
 
-    // if (isRecorded) {
-    //   return res.status(400).json({
-    //     message: "تم تسجيل حالة هذا العامل في هذا اليوم بالفعل"
-    //   });
-    // }
-
-    worker.attendance.push({
-      date: attendanceDate,
-      status,
-    });
+    if (existingAttendance) {
+      // تعديل الحالة فقط
+      existingAttendance.status = status;
+    } else {
+      // إنشاء سجل جديد
+      worker.attendance.push({
+        date: attendanceDate,
+        status,
+      });
+    }
 
     await worker.save();
 
-    res.json({
+    res.status(200).json({
+      success: true,
       message:
-        status === "present"
+        existingAttendance
+          ? "تم تحديث حالة العامل بنجاح"
+          : status === "present"
           ? "تم تسجيل الحضور"
           : "تم تسجيل الغياب",
+      attendance: worker.attendance,
     });
+
   } catch (error) {
     res.status(500).json({
+      success: false,
       message: error.message,
     });
   }
 };
-
 // 3. إضافة (سلفة / خصم / أكل) - حماية ضد الأرقام السالبة الغلط
 exports.addFinancial = async (req, res) => {
   try {
