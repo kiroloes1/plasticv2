@@ -240,24 +240,91 @@ exports.paySalary = async (req, res) => {
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
+
 // 5. تعديل الرصيد يدوياً
 exports.updateBalance = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
-    const { amount, note } = req.body; 
-    
+    session.startTransaction();
+
+    const { amount, note } = req.body;
+    const userId = req.user.userId;
+
     if (amount === undefined || isNaN(amount)) {
-      return res.status(400).json({ message: "الرجاء إدخال مبلغ صحيح لتعديل الرصيد" });
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(400).json({
+        message: "الرجاء إدخال مبلغ صحيح لتعديل الرصيد",
+      });
     }
 
-    const worker = await Worker.findById(req.params.id);
-    if (!worker) return res.status(404).json({ message: "العامل غير موجود" });
+    const worker = await Worker.findById(req.params.id).session(session);
 
+    if (!worker) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(404).json({
+        message: "العامل غير موجود",
+      });
+    }
+
+    // تعديل الرصيد
     worker.balance.amount += Number(amount);
     worker.balance.notes = note || "تعديل يدوي";
-    
-    await worker.save();
-    res.json({ message: "تم تحديث الرصيد", currentBalance: worker.balance.amount });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+
+    // إنشاء حركة في الخزنة
+    if (Number(amount) !== 0) {
+      const box = await getCashBox(userId, session);
+
+      const itemsUpdate = [
+        {
+          title:
+            amount > 0
+              ? `تم سداد مبلغ مالي من العامل ${worker.name}`
+              : `سلفة للعامل ${worker.name}`,
+          category: amount > 0 ? "income" : "expense",
+          amount: Math.abs(amount),
+        },
+      ];
+
+      await TransactionModel.create(
+        [
+          {
+            moneyBoxId: box._id,
+            type: amount > 0 ? "income" : "expense",
+            items: itemsUpdate,
+            note:
+              amount > 0
+                ? note || `تم سداد مبلغ مالي من العامل ${worker.name}`
+                : note || `سلفة للعامل ${worker.name}`,
+            workerId: worker._id,
+            date: new Date(),
+          },
+        ],
+        { session }
+      );
+    }
+
+    await worker.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({
+      message: "تم تحديث الرصيد",
+      currentBalance: worker.balance.amount,
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 };
 
 // 6. جلب كل العمال (بيجيب الاسم، اليومية، والرصيد الحالي فقط للاختصار)
