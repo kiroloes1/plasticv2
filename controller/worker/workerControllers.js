@@ -1,6 +1,7 @@
 const Worker = require(`${__dirname}/../../models/workerModel`);
 const TransactionModel=require(`${__dirname}/../../models/TransactionBox`);
 const { getCashBox } = require(`${__dirname}/../../services/moneyBox`);
+const mongoose = require("mongoose");
 // 1. إضافة عامل (حماية ضد نقص البيانات)
 exports.createWorker = async (req, res) => {
   try {
@@ -145,10 +146,10 @@ exports.addFinancial = async (req, res) => {
             expenseType: type, // advance | food
 
             note:
-              note ||
+              
               (type === "advance"
-                ? `سلفة للعامل ${worker.name}`
-                : `أكل للعامل ${worker.name}`),
+                ? `سلفة للعامل ${worker.name}+ `  + (note || "") 
+                : `أكل للعامل ${worker.name}  + `) + (note || ""),
 
             workerId: worker._id,
             date: new Date(),
