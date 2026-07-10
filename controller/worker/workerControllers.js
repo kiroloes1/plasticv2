@@ -258,7 +258,7 @@ exports.paySalary = async (req, res) => {
                 title: paidAmount > 0
                   ? `دفع راتب للعامل ${worker.name}`
                   : `استرجاع مبلغ من العامل ${worker.name}`,
-                category: paidAmount > 0 ? "expense" : "income",
+                category: paidAmount > 0 ? "workerOut" : "income",
                 amount: Math.abs(Number(paidAmount)),
               },
             ],
