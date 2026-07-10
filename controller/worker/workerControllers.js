@@ -497,6 +497,37 @@ exports.resetWorkerAccount = async (req, res) => {
     
     // 2. تصفير السلف والخصومات
     worker.financialRecords = [];
+
+
+  if ( worker.balance.amount !== 0) {
+      const box = await getCashBox(userId, session);
+      paidAmount = worker.balance.amount;
+      await TransactionModel.create(
+        [
+          {
+            moneyBoxId: box._id,
+            type: paidAmount > 0 ? "expense" : "income",
+            items: [
+              {
+                title: paidAmount > 0
+                  ? `دفع راتب للعامل ${worker.name}`
+                  : `استرجاع مبلغ من العامل ${worker.name}`,
+                category: paidAmount > 0 ? "expense" : "income",
+                amount: Math.abs(Number(paidAmount)),
+              },
+            ],
+            note:
+              note ||
+              (paidAmount > 0
+                ? `دفع راتب للعامل ${worker.name}`
+                : `استرجاع مبلغ من العامل ${worker.name}`),
+            workerId: worker._id,
+            date: new Date(),
+          },
+        ],
+        { session }
+      );
+    }
     
     // 3. تصفير الرصيد المرحل تماماً
     worker.balance.amount = 0;
