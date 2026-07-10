@@ -496,7 +496,7 @@ exports.resetWorkerAccount = async (req, res) => {
     session.startTransaction();
 
     const userId = req.user.userId;
-    const { note } = req.body;
+       const { note } = req.body || { note: "تصفير شامل لحساب العامل" };
 
     const worker = await Worker.findById(req.params.id).session(session);
 
