@@ -40,6 +40,10 @@ const TransactionSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Expense'
         },
+        workerId:{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Worker'
+        },
         returnDrivery:{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'ReturnDelivey'
