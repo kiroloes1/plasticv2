@@ -136,15 +136,24 @@ exports.addFinancial = async (req, res) => {
     // السلفة والأكل فقط يخرجوا من الخزنة
     if (type === "advance" || type === "food") {
       const box = await getCashBox(userId, session);
+      const itemsUpdate=[]
 
+      itemsUpdate.push(            {
+                title:    (type === "advance"
+                ? `سلفة للعامل ${worker.name}+ `  + (note || "") 
+                : `أكل للعامل ${worker.name}  + `) + (note || ""),
+                category: "expense",
+                amount: value,
+            },)  
+       
       await TransactionModel.create(
         [
           {
             moneyBoxId: box._id,
             type: "expense",
-            amount: value,
-            expenseType: type, // advance | food
-
+        
+            // expenseType: type, // advance | food
+            items: itemsUpdate || [],
             note:
               
               (type === "advance"
