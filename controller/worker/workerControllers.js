@@ -190,54 +190,118 @@ exports.addFinancial = async (req, res) => {
   }
 };
 
-// 4. تصفية الحساب (المحاسبة) - حماية ضد العمليات الفارغة
+
+// 4. تصفية الحساب (المحاسبة)
 exports.paySalary = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
-    const { paidAmount } = req.body; // المبلغ اللي المدير دفعه بإيده
-    const worker = await Worker.findById(req.params.id);
-    if (!worker) return res.status(404).json({ message: "العامل غير موجود" });
+    session.startTransaction();
 
-    const presentDays = worker.attendance.filter(a => a.status === "present").length;
-    const totalEarnings = presentDays * (worker.dailySalary || 0);
-    const totalDeductions = worker.financialRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+    const { paidAmount, note } = req.body;
+    const userId = req.user.userId;
 
-    // 1. المستحق الحالي (يومية + رصيد قديم - خصومات)
-    // لاحظ: الرصيد القديم لو مديونية بيبقى سالب أصلاً فبيطرح تلقائياً
-    let currentDues = (totalEarnings + (worker.balance.amount || 0)) - totalDeductions;
+    const worker = await Worker.findById(req.params.id).session(session);
 
-    // 2. حساب الفرق (المستحق - المدفوع فعلياً)
-    // لو currentDues 200 والمدفوع 100 -> يبقى 100 (رصيد موجب للعامل)
-    // لو currentDues 200 والمدفوع 300 -> يبقى -100 (مديونية على العامل)
-    let remainingBalance = currentDues - Number(paidAmount);
+    if (!worker) {
+      await session.abortTransaction();
+      session.endSession();
 
-    // 3. تسجيل العملية في التاريخ
+      return res.status(404).json({
+        message: "العامل غير موجود",
+      });
+    }
+
+    const presentDays = worker.attendance.filter(
+      (a) => a.status === "present"
+    ).length;
+
+    const totalEarnings =
+      presentDays * (worker.dailySalary || 0);
+
+    const totalDeductions = worker.financialRecords.reduce(
+      (sum, r) => sum + (r.amount || 0),
+      0
+    );
+
+    // المستحق الحالي
+    const currentDues =
+      totalEarnings +
+      (worker.balance.amount || 0) -
+      totalDeductions;
+
+    // الرصيد الجديد
+    const remainingBalance =
+      currentDues - Number(paidAmount);
+
+    // سجل الدفع
     worker.paymentHistory.push({
       date: new Date(),
       daysWorked: presentDays,
       totalDeductions,
-      netPaid: Number(paidAmount), // سجلنا اللي اندفع فعلياً
-      remainingBalance: remainingBalance // سجلنا المتبقي في العملية دي
+      netPaid: Number(paidAmount),
+      remainingBalance,
     });
 
-    // 4. تحديث الرصيد الجديد (المتبقي يصبح هو الرصيد القادم)
+    // حركة الخزنة
+    if (Number(paidAmount) !== 0) {
+      const box = await getCashBox(userId, session);
+
+      await TransactionModel.create(
+        [
+          {
+            moneyBoxId: box._id,
+            type: "expense",
+            items: [
+              {
+                title: `دفع راتب للعامل ${worker.name}`,
+                category: "expense",
+                amount: Math.abs(Number(paidAmount)),
+              },
+            ],
+            note:
+              note ||
+              `دفع راتب للعامل ${worker.name}`,
+            workerId: worker._id,
+            date: new Date(),
+          },
+        ],
+        { session }
+      );
+    }
+
+    // تحديث الرصيد
     worker.balance.amount = remainingBalance;
-    worker.balance.notes = remainingBalance < 0 
-      ? `مديونية متبقية بعد دفع ${paidAmount} ج.م` 
-      : remainingBalance > 0 
-      ? `رصيد متبقي للعامل بعد دفع ${paidAmount} ج.م` 
-      : "تمت التصفية بالكامل";
-    
-    // 5. تصفير السجلات الحالية (الحضور والخصومات اليومية)
-    worker.attendance = []; 
+
+    worker.balance.notes =
+      remainingBalance < 0
+        ? `مديونية متبقية بعد دفع ${paidAmount} ج.م`
+        : remainingBalance > 0
+        ? `رصيد متبقي للعامل بعد دفع ${paidAmount} ج.م`
+        : "تمت التصفية بالكامل";
+
+    // تصفير الدورة الحالية
+    worker.attendance = [];
     worker.financialRecords = [];
-    
-    await worker.save();
-    res.json({ 
-      message: "تمت عملية الدفع بنجاح", 
-      netAmount: paidAmount, 
-      newBalance: remainingBalance 
+
+    await worker.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({
+      message: "تمت عملية الدفع بنجاح",
+      netAmount: Number(paidAmount),
+      newBalance: remainingBalance,
     });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 };
 
 
