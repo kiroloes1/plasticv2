@@ -88,7 +88,7 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-// 3. إضافة (سلفة / خصم / أكل) - حماية ضد الأرقام السالبة الغلط
+
 // 3. إضافة (سلفة / خصم / أكل)
 exports.addFinancial = async (req, res) => {
   const session = await mongoose.startSession();
@@ -96,9 +96,10 @@ exports.addFinancial = async (req, res) => {
   try {
     session.startTransaction();
 
-    const { type, amount, note } = req.body;
+    const { type, amount, note ,date } = req.body;
     const userId = req.user.userId;
 
+    const transactionDate = date ? new Date(date) : new Date();
     // التحقق من البيانات
     if (!type || !amount || isNaN(amount)) {
       await session.abortTransaction();
@@ -130,7 +131,7 @@ exports.addFinancial = async (req, res) => {
       type,
       amount: value,
       note: note || "",
-      date: new Date(),
+      date: transactionDate || new Date(),
     });
 
     // السلفة والأكل فقط يخرجوا من الخزنة
@@ -160,7 +161,7 @@ exports.addFinancial = async (req, res) => {
                 ?  (note || `سلفة للعامل ${worker.name}   ` ) 
                 : (note || `أكل للعامل ${worker.name}    `)),
             workerId: worker._id,
-            date: new Date(),
+            date:transactionDate ||  new Date(),
           },
         ],
         { session }
