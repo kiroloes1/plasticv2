@@ -1,5 +1,6 @@
 const Worker = require(`${__dirname}/../../models/workerModel`);
-
+const TransactionModel=require(`${__dirname}/../../models/TransactionBox`);
+const { getCashBox } = require(`${__dirname}/../../services/moneyBox`);
 // 1. إضافة عامل (حماية ضد نقص البيانات)
 exports.createWorker = async (req, res) => {
   try {
@@ -20,6 +21,7 @@ exports.createWorker = async (req, res) => {
     res.status(500).json({ message: "حدث خطأ أثناء الإنشاء", error: error.message });
   }
 };
+
 
 // 2. تسجيل حضور أو غياب (مع إمكانية تعديل الحالة)
 exports.markAttendance = async (req, res) => {
@@ -84,6 +86,7 @@ exports.markAttendance = async (req, res) => {
     });
   }
 };
+
 // 3. إضافة (سلفة / خصم / أكل) - حماية ضد الأرقام السالبة الغلط
 // 3. إضافة (سلفة / خصم / أكل)
 exports.addFinancial = async (req, res) => {
@@ -176,6 +179,56 @@ exports.addFinancial = async (req, res) => {
   } finally {
     session.endSession();
   }
+};
+
+// 4. تصفية الحساب (المحاسبة) - حماية ضد العمليات الفارغة
+exports.paySalary = async (req, res) => {
+  try {
+    const { paidAmount } = req.body; // المبلغ اللي المدير دفعه بإيده
+    const worker = await Worker.findById(req.params.id);
+    if (!worker) return res.status(404).json({ message: "العامل غير موجود" });
+
+    const presentDays = worker.attendance.filter(a => a.status === "present").length;
+    const totalEarnings = presentDays * (worker.dailySalary || 0);
+    const totalDeductions = worker.financialRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+
+    // 1. المستحق الحالي (يومية + رصيد قديم - خصومات)
+    // لاحظ: الرصيد القديم لو مديونية بيبقى سالب أصلاً فبيطرح تلقائياً
+    let currentDues = (totalEarnings + (worker.balance.amount || 0)) - totalDeductions;
+
+    // 2. حساب الفرق (المستحق - المدفوع فعلياً)
+    // لو currentDues 200 والمدفوع 100 -> يبقى 100 (رصيد موجب للعامل)
+    // لو currentDues 200 والمدفوع 300 -> يبقى -100 (مديونية على العامل)
+    let remainingBalance = currentDues - Number(paidAmount);
+
+    // 3. تسجيل العملية في التاريخ
+    worker.paymentHistory.push({
+      date: new Date(),
+      daysWorked: presentDays,
+      totalDeductions,
+      netPaid: Number(paidAmount), // سجلنا اللي اندفع فعلياً
+      remainingBalance: remainingBalance // سجلنا المتبقي في العملية دي
+    });
+
+    // 4. تحديث الرصيد الجديد (المتبقي يصبح هو الرصيد القادم)
+    worker.balance.amount = remainingBalance;
+    worker.balance.notes = remainingBalance < 0 
+      ? `مديونية متبقية بعد دفع ${paidAmount} ج.م` 
+      : remainingBalance > 0 
+      ? `رصيد متبقي للعامل بعد دفع ${paidAmount} ج.م` 
+      : "تمت التصفية بالكامل";
+    
+    // 5. تصفير السجلات الحالية (الحضور والخصومات اليومية)
+    worker.attendance = []; 
+    worker.financialRecords = [];
+    
+    await worker.save();
+    res.json({ 
+      message: "تمت عملية الدفع بنجاح", 
+      netAmount: paidAmount, 
+      newBalance: remainingBalance 
+    });
+  } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
 // 5. تعديل الرصيد يدوياً
