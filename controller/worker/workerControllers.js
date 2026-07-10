@@ -140,8 +140,8 @@ exports.addFinancial = async (req, res) => {
 
       itemsUpdate.push(            {
                 title:    (type === "advance"
-                ? `سلفة للعامل ${worker.name}+ `  + (note || "") 
-                : `أكل للعامل ${worker.name}  + `) + (note || ""),
+                ? `سلفة للعامل ${worker.name}   `   
+                : `أكل للعامل ${worker.name}    `) ,
                 category: "expense",
                 amount: value,
             },)  
@@ -157,9 +157,8 @@ exports.addFinancial = async (req, res) => {
             note:
               
               (type === "advance"
-                ? `سلفة للعامل ${worker.name}+ `  + (note || "") 
-                : `أكل للعامل ${worker.name}  + `) + (note || ""),
-
+                ?  (note || `سلفة للعامل ${worker.name}   ` ) 
+                : (note || `أكل للعامل ${worker.name}    `)),
             workerId: worker._id,
             date: new Date(),
           },
