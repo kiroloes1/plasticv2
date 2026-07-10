@@ -85,81 +85,97 @@ exports.markAttendance = async (req, res) => {
   }
 };
 // 3. إضافة (سلفة / خصم / أكل) - حماية ضد الأرقام السالبة الغلط
+// 3. إضافة (سلفة / خصم / أكل)
 exports.addFinancial = async (req, res) => {
-  try {
-    const { type, amount, note } = req.body;
+  const session = await mongoose.startSession();
 
-    // حماية: التأكد من نوع العملية والمبلغ
+  try {
+    session.startTransaction();
+
+    const { type, amount, note } = req.body;
+    const userId = req.user.userId;
+
+    // التحقق من البيانات
     if (!type || !amount || isNaN(amount)) {
-      return res.status(400).json({ message: "الرجاء إدخال نوع العملية والمبلغ بشكل صحيح" });
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "الرجاء إدخال نوع العملية والمبلغ بشكل صحيح",
+      });
     }
 
     if (!["advance", "deduction", "food"].includes(type)) {
-      return res.status(400).json({ message: "نوع العملية غير مدعوم" });
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "نوع العملية غير مدعوم",
+      });
     }
 
-    const worker = await Worker.findById(req.params.id);
-    if (!worker) return res.status(404).json({ message: "العامل غير موجود" });
+    const worker = await Worker.findById(req.params.id).session(session);
 
-    worker.financialRecords.push({ 
-      type, 
-      amount: Math.abs(Number(amount)), // حماية: تحويل لأرقام موجبة دايماً عشان الحسابات متضربش
-      note: note || "" 
-    });
+    if (!worker) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "العامل غير موجود",
+      });
+    }
 
-    await worker.save();
-    res.json({ message: "تم تسجيل العملية المالية بنجاح" });
-  } catch (error) { res.status(500).json({ message: error.message }); }
-};
+    const value = Math.abs(Number(amount));
 
-// 4. تصفية الحساب (المحاسبة) - حماية ضد العمليات الفارغة
-exports.paySalary = async (req, res) => {
-  try {
-    const { paidAmount } = req.body; // المبلغ اللي المدير دفعه بإيده
-    const worker = await Worker.findById(req.params.id);
-    if (!worker) return res.status(404).json({ message: "العامل غير موجود" });
-
-    const presentDays = worker.attendance.filter(a => a.status === "present").length;
-    const totalEarnings = presentDays * (worker.dailySalary || 0);
-    const totalDeductions = worker.financialRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
-
-    // 1. المستحق الحالي (يومية + رصيد قديم - خصومات)
-    // لاحظ: الرصيد القديم لو مديونية بيبقى سالب أصلاً فبيطرح تلقائياً
-    let currentDues = (totalEarnings + (worker.balance.amount || 0)) - totalDeductions;
-
-    // 2. حساب الفرق (المستحق - المدفوع فعلياً)
-    // لو currentDues 200 والمدفوع 100 -> يبقى 100 (رصيد موجب للعامل)
-    // لو currentDues 200 والمدفوع 300 -> يبقى -100 (مديونية على العامل)
-    let remainingBalance = currentDues - Number(paidAmount);
-
-    // 3. تسجيل العملية في التاريخ
-    worker.paymentHistory.push({
+    // إضافة العملية للعامل
+    worker.financialRecords.push({
+      type,
+      amount: value,
+      note: note || "",
       date: new Date(),
-      daysWorked: presentDays,
-      totalDeductions,
-      netPaid: Number(paidAmount), // سجلنا اللي اندفع فعلياً
-      remainingBalance: remainingBalance // سجلنا المتبقي في العملية دي
     });
 
-    // 4. تحديث الرصيد الجديد (المتبقي يصبح هو الرصيد القادم)
-    worker.balance.amount = remainingBalance;
-    worker.balance.notes = remainingBalance < 0 
-      ? `مديونية متبقية بعد دفع ${paidAmount} ج.م` 
-      : remainingBalance > 0 
-      ? `رصيد متبقي للعامل بعد دفع ${paidAmount} ج.م` 
-      : "تمت التصفية بالكامل";
-    
-    // 5. تصفير السجلات الحالية (الحضور والخصومات اليومية)
-    worker.attendance = []; 
-    worker.financialRecords = [];
-    
-    await worker.save();
-    res.json({ 
-      message: "تمت عملية الدفع بنجاح", 
-      netAmount: paidAmount, 
-      newBalance: remainingBalance 
+    // السلفة والأكل فقط يخرجوا من الخزنة
+    if (type === "advance" || type === "food") {
+      const box = await getCashBox(userId, session);
+
+      await TransactionModel.create(
+        [
+          {
+            moneyBoxId: box._id,
+            type: "expense",
+            amount: value,
+            expenseType: type, // advance | food
+
+            note:
+              note ||
+              (type === "advance"
+                ? `سلفة للعامل ${worker.name}`
+                : `أكل للعامل ${worker.name}`),
+
+            workerId: worker._id,
+            date: new Date(),
+          },
+        ],
+        { session }
+      );
+    }
+
+    await worker.save({ session });
+
+    await session.commitTransaction();
+
+    res.json({
+      message:
+        type === "advance"
+          ? "تم تسجيل السلفة بنجاح"
+          : type === "food"
+          ? "تم تسجيل مصروف الأكل بنجاح"
+          : "تم تسجيل الخصم بنجاح",
     });
-  } catch (error) { res.status(500).json({ message: error.message }); }
+  } catch (error) {
+    await session.abortTransaction();
+
+    res.status(500).json({
+      message: error.message,
+    });
+  } finally {
+    session.endSession();
+  }
 };
 
 // 5. تعديل الرصيد يدوياً
