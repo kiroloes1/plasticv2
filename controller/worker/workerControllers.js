@@ -670,7 +670,7 @@ exports.editFinancial = async (req, res) => {
     if (oldType === "advance" || oldType === "food") {
       transaction = await TransactionModel.findOne({
         workerId: worker._id,
-        date: oldDate,
+        
         "items.amount": oldAmount,
       }).session(session);
     }
@@ -805,7 +805,7 @@ exports.deleteFinancial = async (req, res) => {
       const transaction = await TransactionModel.findOne({
         workerId: worker._id,
         "items.amount": record.amount,
-        date: record.date,
+       
       }).session(session);
 
       if (transaction) {
