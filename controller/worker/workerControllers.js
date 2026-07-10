@@ -55,11 +55,11 @@ exports.markAttendance = async (req, res) => {
       return d.getTime() === attendanceDate.getTime();
     });
 
-    if (isRecorded) {
-      return res.status(400).json({
-        message: "تم تسجيل حالة هذا العامل في هذا اليوم بالفعل"
-      });
-    }
+    // if (isRecorded) {
+    //   return res.status(400).json({
+    //     message: "تم تسجيل حالة هذا العامل في هذا اليوم بالفعل"
+    //   });
+    // }
 
     worker.attendance.push({
       date: attendanceDate,
