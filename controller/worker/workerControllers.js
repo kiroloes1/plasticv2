@@ -251,17 +251,21 @@ exports.paySalary = async (req, res) => {
         [
           {
             moneyBoxId: box._id,
-            type: "expense",
+            type: paidAmount > 0 ? "expense" : "income",
             items: [
               {
-                title: `دفع راتب للعامل ${worker.name}`,
-                category: "expense",
+                title: paidAmount > 0
+                  ? `دفع راتب للعامل ${worker.name}`
+                  : `استرجاع مبلغ من العامل ${worker.name}`,
+                category: paidAmount > 0 ? "expense" : "income",
                 amount: Math.abs(Number(paidAmount)),
               },
             ],
             note:
               note ||
-              `دفع راتب للعامل ${worker.name}`,
+              (paidAmount > 0
+                ? `دفع راتب للعامل ${worker.name}`
+                : `استرجاع مبلغ من العامل ${worker.name}`),
             workerId: worker._id,
             date: new Date(),
           },
