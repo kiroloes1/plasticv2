@@ -486,22 +486,41 @@ exports.deleteWorker = async (req, res) => {
 };
 
 
+
+
 // تصفير شامل لكل سجلات العامل (بدون ترحيل)
 exports.resetWorkerAccount = async (req, res) => {
-  try {
-    const worker = await Worker.findById(req.params.id);
-    if (!worker) return res.status(404).json({ message: "العامل غير موجود" });
+  const session = await mongoose.startSession();
 
-    // 1. تصفير الحضور
-    worker.attendance = []; 
-    
-    // 2. تصفير السلف والخصومات
+  try {
+    session.startTransaction();
+
+    const userId = req.user.userId;
+    const { note } = req.body;
+
+    const worker = await Worker.findById(req.params.id).session(session);
+
+    if (!worker) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(404).json({
+        message: "العامل غير موجود",
+      });
+    }
+
+    // تصفير الحضور
+    worker.attendance = [];
+
+    // تصفير السلف والخصومات
     worker.financialRecords = [];
 
-
-  if ( worker.balance.amount !== 0) {
+    // إذا كان يوجد رصيد مرحل
+    if (worker.balance.amount !== 0) {
       const box = await getCashBox(userId, session);
-      paidAmount = worker.balance.amount;
+
+      const paidAmount = worker.balance.amount;
+
       await TransactionModel.create(
         [
           {
@@ -509,17 +528,18 @@ exports.resetWorkerAccount = async (req, res) => {
             type: paidAmount > 0 ? "expense" : "income",
             items: [
               {
-                title: paidAmount > 0
-                  ? `دفع راتب للعامل ${worker.name}`
-                  : `استرجاع مبلغ من العامل ${worker.name}`,
+                title:
+                  paidAmount > 0
+                    ? `تصفية رصيد العامل ${worker.name}`
+                    : `استرجاع مبلغ من العامل ${worker.name}`,
                 category: paidAmount > 0 ? "expense" : "income",
-                amount: Math.abs(Number(paidAmount)),
+                amount: Math.abs(paidAmount),
               },
             ],
             note:
               note ||
               (paidAmount > 0
-                ? `دفع راتب للعامل ${worker.name}`
+                ? `تصفية رصيد العامل ${worker.name}`
                 : `استرجاع مبلغ من العامل ${worker.name}`),
             workerId: worker._id,
             date: new Date(),
@@ -528,22 +548,31 @@ exports.resetWorkerAccount = async (req, res) => {
         { session }
       );
     }
-    
-    // 3. تصفير الرصيد المرحل تماماً
+
+    // تصفير الرصيد
     worker.balance.amount = 0;
     worker.balance.notes = "تم تصفير الحساب يدوياً";
 
-    // اختياري: لو عايز تمسح تاريخ المدفوعات القديم كمان (paymentHistory)
-    // worker.paymentHistory = []; 
+    // لو عايز تمسح تاريخ المدفوعات
+    // worker.paymentHistory = [];
 
-    await worker.save();
-    
-    res.json({ 
-      success: true, 
-      message: `تم تصفير حساب العامل ${worker.name} بنجاح وبدء سجل جديد` 
+    await worker.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.json({
+      success: true,
+      message: `تم تصفير حساب العامل ${worker.name} بنجاح وبدء سجل جديد`,
     });
-  } catch (error) { 
-    res.status(500).json({ message: "حدث خطأ أثناء التصفير", error: error.message }); 
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+
+    res.status(500).json({
+      message: "حدث خطأ أثناء التصفير",
+      error: error.message,
+    });
   }
 };
 
