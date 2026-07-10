@@ -496,7 +496,7 @@ exports.resetWorkerAccount = async (req, res) => {
     session.startTransaction();
 
     const userId = req.user.userId;
-       const { note } = req.body || { note: "تصفير شامل لحساب العامل" };
+    const { note } = req.body || { note: "تصفير شامل لحساب العامل" };
 
     const worker = await Worker.findById(req.params.id).session(session);
 
@@ -516,7 +516,7 @@ exports.resetWorkerAccount = async (req, res) => {
     worker.financialRecords = [];
 
     // إذا كان يوجد رصيد مرحل
-    if (worker.balance.amount !== 0) {
+    if (worker.balance.amount != 0) {
       const box = await getCashBox(userId, session);
 
       const paidAmount = worker.balance.amount;
@@ -621,5 +621,215 @@ exports.getPayrollSummary = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+
+exports.editFinancial = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const { id, recordId } = req.params;
+    const { type, amount, note } = req.body;
+
+    if (!["advance", "deduction", "food"].includes(type)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: "نوع العملية غير صحيح",
+      });
+    }
+
+    const worker = await Worker.findById(id).session(session);
+
+    if (!worker) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "العامل غير موجود",
+      });
+    }
+
+    const record = worker.financialRecords.id(recordId);
+
+    if (!record) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "السجل غير موجود",
+      });
+    }
+
+    // حفظ البيانات القديمة
+    const oldType = record.type;
+    const oldAmount = record.amount;
+    const oldDate = record.date;
+
+    // البحث عن حركة الخزنة القديمة
+    let transaction = null;
+
+    if (oldType === "advance" || oldType === "food") {
+      transaction = await TransactionModel.findOne({
+        workerId: worker._id,
+        date: oldDate,
+        "items.amount": oldAmount,
+      }).session(session);
+    }
+
+    // تحديث السجل
+    record.type = type;
+    record.amount = Math.abs(Number(amount));
+    record.note = note;
+    record.date = new Date();
+
+    // ===========================
+    // التعامل مع الخزنة
+    // ===========================
+
+    // لو القديم كان يخرج فلوس
+    if (oldType === "advance" || oldType === "food") {
+
+      // الجديد خصم => امسح الحركة
+      if (type === "deduction") {
+
+        if (transaction) {
+          await transaction.deleteOne({ session });
+        }
+
+      } else {
+
+        // تحديث الحركة
+        if (transaction) {
+          transaction.items[0].amount = Math.abs(Number(amount));
+
+          transaction.items[0].title =
+            type === "advance"
+              ? `سلفة للعامل ${worker.name}`
+              : `أكل للعامل ${worker.name}`;
+
+          transaction.note =
+            note ||
+            (type === "advance"
+              ? `سلفة للعامل ${worker.name}`
+              : `أكل للعامل ${worker.name}`);
+
+          transaction.date = new Date();
+
+          await transaction.save({ session });
+        }
+      }
+    }
+
+    // القديم خصم والجديد سلفة أو أكل
+    else if (
+      oldType === "deduction" &&
+      (type === "advance" || type === "food")
+    ) {
+      const userId = req.user.userId;
+      const box = await getCashBox(userId, session);
+
+      await TransactionModel.create(
+        [
+          {
+            moneyBoxId: box._id,
+            type: "expense",
+            workerId: worker._id,
+            items: [
+              {
+                title:
+                  type === "advance"
+                    ? `سلفة للعامل ${worker.name}`
+                    : `أكل للعامل ${worker.name}`,
+                category: "expense",
+                amount: Math.abs(Number(amount)),
+              },
+            ],
+            note:
+              note ||
+              (type === "advance"
+                ? `سلفة للعامل ${worker.name}`
+                : `أكل للعامل ${worker.name}`),
+            date: new Date(),
+          },
+        ],
+        { session }
+      );
+    }
+
+    await worker.save({ session });
+
+    await session.commitTransaction();
+
+    res.json({
+      message: "تم تعديل العملية بنجاح",
+    });
+  } catch (err) {
+    await session.abortTransaction();
+
+    res.status(500).json({
+      message: err.message,
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+
+exports.deleteFinancial = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const { id, recordId } = req.params;
+
+    const worker = await Worker.findById(id).session(session);
+
+    if (!worker) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "العامل غير موجود",
+      });
+    }
+
+    const record = worker.financialRecords.id(recordId);
+
+    if (!record) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        message: "السجل غير موجود",
+      });
+    }
+
+    // لو العملية كانت سلفة أو أكل يبقى نحذف حركة الخزنة
+    if (record.type === "advance" || record.type === "food") {
+      const transaction = await TransactionModel.findOne({
+        workerId: worker._id,
+        "items.amount": record.amount,
+        date: record.date,
+      }).session(session);
+
+      if (transaction) {
+        await transaction.deleteOne({ session });
+      }
+    }
+
+    // حذف السجل من العامل
+    record.deleteOne();
+
+    await worker.save({ session });
+
+    await session.commitTransaction();
+
+    res.json({
+      message: "تم حذف العملية بنجاح",
+    });
+  } catch (err) {
+    await session.abortTransaction();
+
+    res.status(500).json({
+      message: err.message,
+    });
+  } finally {
+    session.endSession();
   }
 };
