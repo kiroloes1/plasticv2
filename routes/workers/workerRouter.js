@@ -3,6 +3,7 @@ const router = express.Router();
 const workerCtrl = require(`${__dirname}/../../controller/worker/workerControllers`);
 const authMiddleware = require(`${__dirname}/../../middlewares/authMiddleware`);
 const { role } = require(`${__dirname}/../../middlewares/authorization`); 
+
 // ========================== MIDDLEWARES ==========================
 
 // حماية جميع المسارات وحصرها على الأدوار المحددة (Superadmin و Manager)
@@ -39,6 +40,11 @@ router.post("/:id/attendance", workerCtrl.markAttendance);
 // تسجيل (سلفة، مصروف أكل، أو خصم)
 router.post("/:id/financial", workerCtrl.addFinancial);
 
+// تعديل عملية مالية
+router.put("/:id/financial/:recordId", workerCtrl.editFinancial);
+
+// حذف عملية مالية
+router.delete("/:id/financial/:recordId", workerCtrl.deleteFinancial);
 
 // --- 3. الحسابات والمحاسبة (تصفية الراتب) ---
 
