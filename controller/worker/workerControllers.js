@@ -633,7 +633,8 @@ exports.editFinancial = async (req, res) => {
     session.startTransaction();
 
     const { id, recordId } = req.params;
-    const { type, amount, note } = req.body;
+    const { type, amount, note , date } = req.body;
+    const transactionDate = date ? new Date(date) : new Date();
 
     if (!["advance", "deduction", "food"].includes(type)) {
       await session.abortTransaction();
@@ -680,7 +681,7 @@ exports.editFinancial = async (req, res) => {
     record.type = type;
     record.amount = Math.abs(Number(amount));
     record.note = note;
-    record.date = new Date();
+    record.date =transactionDate  || new Date();
 
     // ===========================
     // التعامل مع الخزنة
@@ -713,7 +714,7 @@ exports.editFinancial = async (req, res) => {
               ? `سلفة للعامل ${worker.name}`
               : `أكل للعامل ${worker.name}`);
 
-          transaction.date = new Date();
+          transaction.date = transactionDate || new Date();
 
           await transaction.save({ session });
         }
@@ -749,7 +750,7 @@ exports.editFinancial = async (req, res) => {
               (type === "advance"
                 ? `سلفة للعامل ${worker.name}`
                 : `أكل للعامل ${worker.name}`),
-            date: new Date(),
+            date: transactionDate ||new Date(),
           },
         ],
         { session }
