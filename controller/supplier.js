@@ -202,7 +202,7 @@ exports.addDebt = async (req, res) => {
     const { amount, note,paymentMethod ,date } = req.body;
     const userId=req.user.userId;
 
-    if (!paymentMethod || !["cash" , "wallet" ,"instapay" ,"bank" ,"work","mail"].includes(paymentMethod)) {
+    if (!paymentMethod || !["cash" , "wallet" ,"instapay" ,"bank transfer" ,"work","mail"].includes(paymentMethod)) {
       return res.status(400).json({
         message: "طريقة الدفع غير صحيحة"
       });
@@ -284,7 +284,7 @@ exports.paySupplier = async (req, res) => {
     const { amount, note , paymentMethod,date  } = req.body;
     const userId = req.user.userId;
 
-        if (!paymentMethod || !["cash" , "wallet" ,"instapay" ,"bank" ,"work","mail"].includes(paymentMethod)) {
+        if (!paymentMethod || !["cash" , "wallet" ,"instapay" ,"bank transfer" ,"work","mail"].includes(paymentMethod)) {
       return res.status(400).json({
         message: "طريقة الدفع غير صحيحة"
       });
