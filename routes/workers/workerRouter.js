@@ -20,6 +20,16 @@ router.post("/add", workerCtrl.createWorker);
 // جلب قائمة كل العمال (الاسم، اليومية، والرصيد)
 router.get("/all", workerCtrl.getWorkers);
 
+// details to foods and  advance (general financial details for worker)
+router.get("/financial-details", workerCtrl.getFinancialDetails);
+
+// details to  net salary and deductions (general financial details for worker)
+router.get("/payroll-details", workerCtrl.getNetSalaryDetails);
+
+
+// pressent and absent details for all workers (general attendance details for worker)
+router.get("/attendance-details", workerCtrl.getAttendanceDetails);
+
 // جلب بيانات عامل واحد بالتفصيل (الحسابات، الحضور، الأرشيف)
 router.get("/:id", workerCtrl.getWorkerById);
 
