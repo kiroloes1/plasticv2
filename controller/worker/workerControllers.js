@@ -143,7 +143,7 @@ exports.addFinancial = async (req, res) => {
                 title:    (type === "advance"
                 ? `سلفة للعامل ${worker.name}   `   
                 : `أكل للعامل ${worker.name}    `) ,
-                category: "expense",
+                category: type === "advance" ? "advance" : "food",
                 amount: value,
             },)  
        
