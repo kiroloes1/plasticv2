@@ -672,7 +672,7 @@ exports.editFinancial = async (req, res) => {
     if (oldType === "advance" || oldType === "food") {
       transaction = await TransactionModel.findOne({
         workerId: worker._id,
-        category: type === "advance" ? "advance" : "food",
+        type: "expense",
         "items.amount": oldAmount,
       }).session(session);
     }
@@ -741,7 +741,7 @@ exports.editFinancial = async (req, res) => {
                   type === "advance"
                     ? `سلفة للعامل ${worker.name}`
                     : `أكل للعامل ${worker.name}`,
-                category: type === "advance" ? "advance" : "food",
+                category: "expense",
                 amount: Math.abs(Number(amount)),
               },
             ],
@@ -807,7 +807,7 @@ exports.deleteFinancial = async (req, res) => {
       const transaction = await TransactionModel.findOne({
         workerId: worker._id,
         "items.amount": record.amount,
-          category: type === "advance" ? "advance" : "food",
+        type: "expense"
        
       }).session(session);
 
