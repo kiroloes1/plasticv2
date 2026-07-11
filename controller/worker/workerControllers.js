@@ -836,3 +836,106 @@ exports.deleteFinancial = async (req, res) => {
     session.endSession();
   }
 };
+
+
+// details to foods and  advance (general financial details for worker)
+
+exports.getFinancialDetails = async (req, res) => {
+  try{
+
+      const workers = await Worker.find({}, 'name financialRecords');
+
+      const totalFinancialDetails = workers.map(worker => {
+          const totalAdvance = worker.financialRecords
+              .filter(record => record.type === 'advance' )
+              .reduce((sum, record) => sum + record.amount, 0);
+
+           const totalFood = worker.financialRecords
+              .filter(record => record.type === 'food' )
+              .reduce((sum, record) => sum + record.amount, 0);   
+
+              
+              return {
+                  workerId: worker._id,
+                  name: worker.name,
+                  totalAdvance,
+                  totalFood
+              };
+      }
+      );
+
+      res.status(200).json({
+          success: true,
+          data: totalFinancialDetails ,
+          details:workers
+      });
+      }
+         
+
+     
+
+
+   catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// details to  net salary and deductions (general financial details for worker)
+
+exports.getNetSalaryDetails = async (req, res) => {
+  try {
+    const workers = await Worker.find({}, 'name dailySalary attendance financialRecords balance');
+    const totalNetSalaryDetails = workers.map(worker => {
+      const presentDays = worker.attendance.filter(a => a.status === "present").length;
+      const totalEarnings = presentDays * (worker.dailySalary || 0);
+      const totalDeductions = worker.financialRecords.reduce((sum, r) => sum + (r.amount || 0), 0);
+      const previousBalance = worker.balance.amount || 0;
+
+      const netSalary = (totalEarnings + previousBalance) - totalDeductions;
+
+      return {
+        workerId: worker._id,
+        name: worker.name,
+        presentDays,
+        totalEarnings,
+        totalDeductions,
+        previousBalance,
+        netSalary
+      };
+    });
+    res.status(200).json({
+      success: true,
+      data: totalNetSalaryDetails,
+      details: workers
+    });
+
+  }
+  catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}
+
+// pressent and absent details for all workers (general attendance details for worker)
+exports.getAttendanceDetails = async (req, res) => {
+  try { 
+      
+
+    const workers = await Worker.find({}, 'name attendance');
+
+    const totalAttendanceDetails = workers.map(worker => {
+      const presentDays = worker.attendance.filter(a => a.status === "present").length;
+      const absentDays = worker.attendance.filter(a => a.status === "absent").length;
+    })
+    res.status(200).json({
+      success: true,
+      data: totalAttendanceDetails,
+      details: workers
+    });
+  }
+  catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}  
+
+
+
