@@ -354,7 +354,7 @@ exports.updateBalance = async (req, res) => {
             amount > 0
               ? `تم سداد مبلغ مالي من العامل ${worker.name}`
               : `سلفة للعامل ${worker.name}`,
-          category: amount > 0 ? "income" : "expense",
+          category: amount > 0 ? "income" : "workerOut",
           amount: Math.abs(amount),
         },
       ];
