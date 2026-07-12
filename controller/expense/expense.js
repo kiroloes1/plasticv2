@@ -189,25 +189,33 @@ exports.updateExpense = async (req, res) => {
 // getAllExpenses
 exports.getAllExpenses = async (req, res) => {
   try {
-    const expenses = await Expense.find()
-      .populate('createdBy', 'username')
-      .populate('updatedBy', 'username')
-      .sort({ expenseDate: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-const expenses2 = await Expense.find();
+    const skip = (page - 1) * limit;
 
-for (const expense of expenses2) {
-  expense.totalAmount = expense.items.reduce(
-    (sum, item) => sum + (item.amount || 0),
-    0
-  );
+    const [expenses, total] = await Promise.all([
+      Expense.find()
+        .populate("createdBy", "username")
+        .populate("updatedBy", "username")
+        .sort({ expenseDate: -1 })
+        .skip(skip)
+        .limit(limit),
 
-  await expense.save();
-}
+      Expense.countDocuments(),
+    ]);
 
-
-
-    res.status(200).json(expenses);
+    res.status(200).json({
+      expenses,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
