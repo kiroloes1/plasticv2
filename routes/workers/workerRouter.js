@@ -34,6 +34,8 @@ router.get("/attendance-details", workerCtrl.getAttendanceDetails);
 router.get("/:id", workerCtrl.getWorkerById);
 
 router.get('/payroll/total-summary', workerCtrl.getPayrollSummary);
+
+router.put("/reorder", workerCtrl.reorderWorkers);
 // مسار التعديل
 router.put('/:id', workerCtrl.updateWorker);
 
@@ -50,7 +52,7 @@ router.post("/:id/attendance", workerCtrl.markAttendance);
 // تسجيل (سلفة، مصروف أكل، أو خصم)
 router.post("/:id/financial", workerCtrl.addFinancial);
 
-router.put("/reorder", workerCtrl.reorderWorkers);
+
 // تعديل عملية مالية
 router.put("/:id/financial/:recordId", workerCtrl.editFinancial);
 
