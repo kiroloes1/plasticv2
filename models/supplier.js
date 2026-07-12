@@ -37,7 +37,7 @@ const supplierSchema = new mongoose.Schema({
   paymentHistory: [
     {
       type: { type: String, enum: ["payment", "debt"] },
-      paymentMethod: { type: String, enum: ["cash", "bank transfer", "wallet","work","mail"] },
+      paymentMethod: { type: String, enum: ["cash", "bank transfer", "wallet","work","mail"] , default:"cash"},
       amount: { type: Number, required: true },
       date: { type: Date, default: Date.now },
       note: String,
