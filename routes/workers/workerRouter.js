@@ -50,6 +50,7 @@ router.post("/:id/attendance", workerCtrl.markAttendance);
 // تسجيل (سلفة، مصروف أكل، أو خصم)
 router.post("/:id/financial", workerCtrl.addFinancial);
 
+router.put("/reorder", workerCtrl.reorderWorkers);
 // تعديل عملية مالية
 router.put("/:id/financial/:recordId", workerCtrl.editFinancial);
 
