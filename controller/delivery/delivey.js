@@ -520,26 +520,6 @@ exports.getAllDeliveries = async (req, res) => {
         const total = await derliveryModel.countDocuments(filter);
 
 
-        await derliveryModel.updateMany(
-  {
-    $or: [
-      { payment: { $exists: false } },
-      { payment: { $size: 0 } }
-    ]
-  },
-  [
-    {
-      $set: {
-        payment: [
-          {
-            paidAmount: "$paidAmount",
-            paymentMethod: "cash"
-          }
-        ]
-      }
-    }
-  ]
-);
         res.status(200).json({
             page,
             results: deliveries.length,
