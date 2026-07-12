@@ -399,8 +399,7 @@ exports.updateBalance = async (req, res) => {
 // 6. جلب كل العمال (بيجيب الاسم، اليومية، والرصيد الحالي فقط للاختصار)
 exports.getWorkers = async (req, res) => {
   try {
-    const workers = await Worker.find();
-    
+    const workers = await Worker.find().sort({ order: 1 });
     res.status(200).json({
       success: true,
       count: workers.length,
@@ -410,6 +409,28 @@ exports.getWorkers = async (req, res) => {
     res.status(500).json({ message: "حدث خطأ أثناء جلب العمال", error: error.message });
   }
 };
+
+exports.reorderWorkers = async (req, res) => {
+  const { workers } = req.body;
+
+  const bulk = workers.map((w) => ({
+    updateOne: {
+      filter: { _id: w.id },
+      update: {
+        $set: {
+          order: w.order,
+        },
+      },
+    },
+  }));
+
+  await Worker.bulkWrite(bulk);
+
+  res.json({
+    message: "تم حفظ الترتيب",
+  });
+};
+
 
 
 
