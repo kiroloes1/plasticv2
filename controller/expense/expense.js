@@ -192,16 +192,33 @@ exports.getAllExpenses = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search?.trim() || "";
+    const { fromDate, toDate } = req.query;
 
     const skip = (page - 1) * limit;
 
     const filter = {};
 
+    // البحث
     if (search) {
       filter["items.title"] = {
         $regex: search,
         $options: "i",
       };
+    }
+
+    // فلترة التاريخ
+    if (fromDate || toDate) {
+      filter.expenseDate = {};
+
+      if (fromDate) {
+        filter.expenseDate.$gte = new Date(fromDate);
+      }
+
+      if (toDate) {
+        const endDate = new Date(toDate);
+        endDate.setHours(23, 59, 59, 999); // نهاية اليوم
+        filter.expenseDate.$lte = endDate;
+      }
     }
 
     const [expenses, total] = await Promise.all([
