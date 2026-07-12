@@ -4,6 +4,8 @@ const deliveryController = require(`${__dirname}/../../controller/delivery/deliv
 const {role}= require(`${__dirname}/../../middlewares/authorization`) 
 const { protected } = require(`${__dirname}/../../middlewares/authMiddleware`); 
 
+
+router.get("/migrate-payment", deliveryController.migratePayments);
 // All routes are protecterd
 router.use(protected);
 const authorizationMiddleware = require(`${__dirname}/../../middlewares/authorization`);
