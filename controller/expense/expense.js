@@ -202,7 +202,7 @@ for (const expense of expenses2) {
     0
   );
 
-  await expense2.save();
+  await expenses2.save();
 }
 
 
