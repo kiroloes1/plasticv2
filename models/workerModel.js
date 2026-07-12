@@ -30,7 +30,14 @@ const workerSchema = new mongoose.Schema({
     daysWorked: Number,
     totalDeductions: Number,
     netPaid: Number
-  }]
+  }],
+
+
+  order: {
+    type: Number,
+    default: 0,
+  },
+  
 }, { timestamps: true });
 
 module.exports = mongoose.model("Worker", workerSchema);
