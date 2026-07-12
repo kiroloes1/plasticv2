@@ -194,18 +194,18 @@ exports.getAllExpenses = async (req, res) => {
       .populate('updatedBy', 'username')
       .sort({ expenseDate: -1 });
 
-    await Expense.updateMany(
-  { totalAmount: { $exists: false } },
-  [
-    {
-      $set: {
-        totalAmount: {
-          $sum: "$items.amount"
-        }
-      }
-    }
-  ]
-);
+const expenses2 = await Expense.find();
+
+for (const expense of expenses2) {
+  expense.totalAmount = expense.items.reduce(
+    (sum, item) => sum + (item.amount || 0),
+    0
+  );
+
+  await expense2.save();
+}
+
+
 
     res.status(200).json(expenses);
   } catch (err) {
