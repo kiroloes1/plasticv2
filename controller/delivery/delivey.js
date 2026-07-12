@@ -688,3 +688,36 @@ exports.deleteDeliveryless = async (req, res) => {
         });
     }
 };
+
+exports.migratePayments = async (req, res) => {
+  try {
+    const deliveries = await derliveryModel.find({
+      $or: [
+        { payment: { $exists: false } },
+        { payment: { $size: 0 } }
+      ]
+    });
+
+    for (const delivery of deliveries) {
+      if (delivery.paidAmount > 0) {
+        delivery.payment = [
+          {
+            paidAmount: delivery.paidAmount,
+            paymentMethod: "cash",
+          },
+        ];
+      } else {
+        delivery.payment = [];
+      }
+
+      await delivery.save();
+    }
+
+    res.json({
+      message: "Migration completed",
+      updated: deliveries.length,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
