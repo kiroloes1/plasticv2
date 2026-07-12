@@ -6,6 +6,51 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 const deliveryMoedl=require(`${__dirname}/../models/delivery`);
 const returnDeliveryMoedl=require(`${__dirname}/../models/returnDelivery`);
 const outDeliveryMoedl=require(`${__dirname}/../models/outDelivery`);
+
+
+
+
+exports.migrateSupplierTransactions = async (req, res) => {
+  try {
+    const suppliers = await Supplier.find();
+
+    let updated = 0;
+
+    for (const supplier of suppliers) {
+      let changed = false;
+
+      supplier.transactions.forEach((transaction) => {
+        if (!transaction.payment || transaction.payment.length === 0) {
+          transaction.payment =
+            transaction.paid > 0
+              ? [
+                  {
+                    paidAmount: transaction.paid,
+                    paymentMethod: "cash",
+                  },
+                ]
+              : [];
+
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        await supplier.save();
+        updated++;
+      }
+    }
+
+    res.json({
+      message: "Migration completed successfully",
+      updatedSuppliers: updated,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+};
 // ================= GET ALL =================
 exports.getAllSuppliers = async (req, res) => {
   try {
