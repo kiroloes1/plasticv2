@@ -6,6 +6,10 @@ const {role}= require(`${__dirname}/../middlewares/authorization`)
 
 
 
+router.get(
+  "/migrate-transactions-payment",
+  supplierController.migrateSupplierTransactions
+);
 // protected routes
 router.use(authMiddleware.protected);
 router.use(role('superadmin', 'manager')); // only admin and manager can access these routes
