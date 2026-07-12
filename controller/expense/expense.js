@@ -194,6 +194,19 @@ exports.getAllExpenses = async (req, res) => {
       .populate('updatedBy', 'username')
       .sort({ expenseDate: -1 });
 
+    await Expense.updateMany(
+  { totalAmount: { $exists: false } },
+  [
+    {
+      $set: {
+        totalAmount: {
+          $sum: "$items.amount"
+        }
+      }
+    }
+  ]
+);
+
     res.status(200).json(expenses);
   } catch (err) {
     res.status(500).json({ error: err.message });
