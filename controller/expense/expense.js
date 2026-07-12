@@ -191,18 +191,28 @@ exports.getAllExpenses = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search?.trim() || "";
 
     const skip = (page - 1) * limit;
 
+    const filter = {};
+
+    if (search) {
+      filter["items.title"] = {
+        $regex: search,
+        $options: "i",
+      };
+    }
+
     const [expenses, total] = await Promise.all([
-      Expense.find()
+      Expense.find(filter)
         .populate("createdBy", "username")
         .populate("updatedBy", "username")
         .sort({ expenseDate: -1 })
         .skip(skip)
         .limit(limit),
 
-      Expense.countDocuments(),
+      Expense.countDocuments(filter),
     ]);
 
     res.status(200).json({
