@@ -4,7 +4,7 @@ const TransactionSchema = new mongoose.Schema({
     moneyBoxId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'MoneyBox',
-        required: true
+        required: false
     },
 
     type: {
