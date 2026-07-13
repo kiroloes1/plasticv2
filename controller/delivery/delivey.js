@@ -510,7 +510,7 @@ exports.getAllDeliveries = async (req, res) => {
         }
 
         // query
-        const deliveries = await derliveryModel.find(filter,{_id:1, delveryNumber:1 ,supplier:1,totalAmount:1})
+        const deliveries = await derliveryModel.find(filter,{_id:1, delveryNumber:1 ,supplier:1,totalAmount:1,deliveryDate:1})
             .populate("supplier", "name")
             .sort({ deliveryDate: -1 })
 
