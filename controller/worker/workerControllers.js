@@ -24,6 +24,7 @@ exports.createWorker = async (req, res) => {
 };
 
 
+
 // 2. تسجيل حضور أو غياب (مع إمكانية تعديل الحالة)
 exports.markAttendance = async (req, res) => {
   try {
@@ -37,8 +38,24 @@ exports.markAttendance = async (req, res) => {
     }
 
     // استخدام التاريخ المرسل أو تاريخ اليوم
-    const attendanceDate = date ? new Date(date) : new Date();
-    attendanceDate.setHours(0, 0, 0, 0);
+let attendanceDate;
+
+if (date) {
+  const d = new Date(date);
+
+  attendanceDate = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+} else {
+  attendanceDate = new Date();
+  attendanceDate.setHours(0, 0, 0, 0);
+}
 
     const worker = await Worker.findById(req.params.id);
 
