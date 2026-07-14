@@ -83,7 +83,9 @@ exports.createDelivery = async (req, res) => {
             }
 
         
-            const returnWeight = item.returnWeight + item.oldReturnWeight  || 0;
+               const returnWeight =
+                Number(item.returnWeight || 0) +
+                Number(item.oldReturnWeight || 0);
 
             if (returnWeight > itemTotalWeight) {
                 throw new Error("المرتجع أكبر من الوزن");
@@ -290,7 +292,9 @@ exports.updateDelivery = async (req, res) => {
                 itemTotalWeight += batch.weight * batch.quantity;
             }
 
-            const returnWeight = item.returnWeight  + item.oldReturnWeight || 0;
+               const returnWeight =
+                Number(item.returnWeight || 0) +
+                Number(item.oldReturnWeight || 0);
 
             if (returnWeight > itemTotalWeight) {
                 throw new Error("المرتجع أكبر من الوزن");
