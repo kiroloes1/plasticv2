@@ -87,9 +87,9 @@ exports.createDelivery = async (req, res) => {
                 Number(item.returnWeight || 0) +
                 Number(item.oldReturnWeight || 0);
 
-            if (returnWeight > itemTotalWeight) {
-                throw new Error("المرتجع أكبر من الوزن");
-            }
+            // if (returnWeight > itemTotalWeight) {
+            //     throw new Error("المرتجع أكبر من الوزن");
+            // }
 
             
             const netWeight = itemTotalWeight - returnWeight;
@@ -296,9 +296,9 @@ exports.updateDelivery = async (req, res) => {
                 Number(item.returnWeight || 0) +
                 Number(item.oldReturnWeight || 0);
 
-            if (returnWeight > itemTotalWeight) {
-                throw new Error("المرتجع أكبر من الوزن");
-            }
+            // if (returnWeight > itemTotalWeight) {
+            //     throw new Error("المرتجع أكبر من الوزن");
+            // }
 
             const netWeight = itemTotalWeight - returnWeight;
             const grossPrice = netWeight * item.pricePerKg;
