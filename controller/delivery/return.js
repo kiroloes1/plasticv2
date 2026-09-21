@@ -180,7 +180,8 @@ exports.updateReturnDelivery = async (req, res) => {
             {
                 items,
                 notes,
-                totalAmount: newTotal
+                totalAmount: newTotal,
+                  deliveryDate
             },
             { new: true, session }
         );
