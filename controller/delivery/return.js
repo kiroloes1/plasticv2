@@ -67,6 +67,7 @@ exports.createReturnDelivery = async (req, res) => {
             items,
             notes,
             totalAmount,
+            deliveryDate,
             oldBalance:supplierDoc.remainingBalance
         }], { session });
 
