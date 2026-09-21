@@ -11,14 +11,17 @@ exports.createReturnDelivery = async (req, res) => {
     session.startTransaction();
 
     try {
-                const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        
+        //         const today = new Date();
+        // today.setHours(0, 0, 0, 0);
 
-        const tomorrow = new Date();
-        tomorrow.setHours(23, 59, 59, 999);
+        // const tomorrow = new Date();
+        // tomorrow.setHours(23, 59, 59, 999);
 
         const { supplier, items, notes ,deliveryDate } = req.body;
         const adminId = req.user.userId;
+
+        
 
         if (!supplier || !items?.length) {
             throw new Error("المورد والأصناف مطلوبين");
@@ -28,12 +31,24 @@ exports.createReturnDelivery = async (req, res) => {
         if (!supplierDoc) throw new Error("المورد غير موجود");
 
 
-                const lastDelivery = await ReturnDelivery
-        .findOne({
-            deliveryDate: { $gte: today, $lte: tomorrow }
-        })
-        .sort({ delveryNumber: -1 })
-        .session(session);
+        const selectedDate = new Date(deliveryDate);
+
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        
+        const lastDelivery = await ReturnDelivery
+          .findOne({
+            deliveryDate: {
+              $gte: startOfDay,
+              $lte: endOfDay
+            }
+          })
+          .sort({ delveryNumber: -1 })
+          .session(session);
 
         const deliveryNumber = lastDelivery
         ? lastDelivery.delveryNumber + 1
@@ -67,7 +82,7 @@ exports.createReturnDelivery = async (req, res) => {
             items,
             notes,
             totalAmount,
-            deliveryDate,
+            deliveryDate: selectedDate,
             oldBalance:supplierDoc.remainingBalance
         }], { session });
 
