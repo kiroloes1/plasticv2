@@ -194,16 +194,16 @@ exports.createDelivery = async (req, res) => {
         //     },)
 
         const box = await getCashBox(userId, session);
-          await TransactionModel.create([{
-            moneyBoxId: box._id,
-            type: "income",
-            note: note || " استلام فلوس نقدي من التاجر " + "  "+ supplierExists.name +" " +" كعمليه بيع نقله",
-            items: itemsUpdate || [],
-           supplierId: supplierExists._id,
-           deliverId: delivery[0]._id,
-           date: deliveryDate || new Date()
+        //   await TransactionModel.create([{
+        //     moneyBoxId: box._id,
+        //     type: "income",
+        //     note: note || " استلام فلوس نقدي من التاجر " + "  "+ supplierExists.name +" " +" كعمليه بيع نقله",
+        //     items: itemsUpdate || [],
+        //    supplierId: supplierExists._id,
+        //    deliverId: delivery[0]._id,
+        //    date: deliveryDate || new Date()
             
-        }], { session });
+        // }], { session });
 
         await session.commitTransaction();
         session.endSession();
@@ -398,16 +398,16 @@ exports.updateDelivery = async (req, res) => {
         //     },)
 
         const box = await getCashBox(adminId, session);
-          await TransactionModel.create([{
-            moneyBoxId: box._id,
-            type: "income",
-            note: note || " استلام فلوس نقدي من التاجر " + "  "+ supplierDoc.name +" " +" كعمليه بيع نقله",
-            items: itemsUpdate || [],
-           supplierId: supplierDoc._id,
-           deliverId: updated._id,
-             date: deliveryDate || new Date()
+        //   await TransactionModel.create([{
+        //     moneyBoxId: box._id,
+        //     type: "income",
+        //     note: note || " استلام فلوس نقدي من التاجر " + "  "+ supplierDoc.name +" " +" كعمليه بيع نقله",
+        //     items: itemsUpdate || [],
+        //    supplierId: supplierDoc._id,
+        //    deliverId: updated._id,
+        //      date: deliveryDate || new Date()
             
-        }], { session });
+        // }], { session });
 
         await session.commitTransaction();
         session.endSession();
